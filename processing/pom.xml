@@ -29,24 +29,18 @@
 			<groupId>org.processing</groupId>
 			<artifactId>sound</artifactId>
 			<version>3.3.7</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/libs/sound.jar</systemPath>
 		</dependency>
 
 		<dependency>
 			<groupId>jsyn</groupId>
 			<artifactId>jsyn</artifactId>
 			<version>20171016</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/libs/jsyn-20171016.jar</systemPath>
 		</dependency>
 
 		<dependency>
 			<groupId>javamp3</groupId>
 			<artifactId>javamp3</artifactId>
 			<version>1.0.3</version>
-			<scope>system</scope>
-			<systemPath>${basedir}/libs/javamp3-1.0.3.jar</systemPath>
 		</dependency>
 
 		<dependency>
@@ -94,43 +88,25 @@
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
+				<artifactId>maven-assembly-plugin</artifactId>
 				<executions>
 					<execution>
+						<phase>package</phase>
 						<goals>
-							<goal>shade</goal>
+							<goal>single</goal>
 						</goals>
 						<configuration>
-							<shadedArtifactAttached>true</shadedArtifactAttached>
-							<transformers>
-								<transformer implementation=
-													 "org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+							<archive>
+								<manifest>
 									<mainClass>com.github.zjor.App</mainClass>
-								</transformer>
-							</transformers>
+								</manifest>
+							</archive>
+							<descriptorRefs>
+								<descriptorRef>jar-with-dependencies</descriptorRef>
+							</descriptorRefs>
 						</configuration>
 					</execution>
 				</executions>
-				<!--<groupId>org.apache.maven.plugins</groupId>-->
-				<!--<artifactId>maven-assembly-plugin</artifactId>-->
-				<!--<executions>-->
-					<!--<execution>-->
-						<!--<phase>package</phase>-->
-						<!--<goals>-->
-							<!--<goal>single</goal>-->
-						<!--</goals>-->
-						<!--<configuration>-->
-							<!--<archive>-->
-								<!--<manifest>-->
-									<!--<mainClass>com.github.zjor.App</mainClass>-->
-								<!--</manifest>-->
-							<!--</archive>-->
-							<!--<descriptorRefs>-->
-								<!--<descriptorRef>jar-with-dependencies</descriptorRef>-->
-							<!--</descriptorRefs>-->
-						<!--</configuration>-->
-					<!--</execution>-->
-				<!--</executions>-->
 			</plugin>
 		</plugins>
 	</build>
