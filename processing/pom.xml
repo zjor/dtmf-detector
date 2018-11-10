@@ -7,6 +7,7 @@
 	<groupId>com.github.zjor</groupId>
 	<artifactId>dtmf-detector</artifactId>
 	<version>1.0-SNAPSHOT</version>
+	<packaging>jar</packaging>
 
 	<name>dtmf-detector</name>
 
@@ -89,5 +90,48 @@
 				</plugin>
 			</plugins>
 		</pluginManagement>
+		<finalName>${artifactId}</finalName>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<shadedArtifactAttached>true</shadedArtifactAttached>
+							<transformers>
+								<transformer implementation=
+													 "org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+									<mainClass>com.github.zjor.App</mainClass>
+								</transformer>
+							</transformers>
+						</configuration>
+					</execution>
+				</executions>
+				<!--<groupId>org.apache.maven.plugins</groupId>-->
+				<!--<artifactId>maven-assembly-plugin</artifactId>-->
+				<!--<executions>-->
+					<!--<execution>-->
+						<!--<phase>package</phase>-->
+						<!--<goals>-->
+							<!--<goal>single</goal>-->
+						<!--</goals>-->
+						<!--<configuration>-->
+							<!--<archive>-->
+								<!--<manifest>-->
+									<!--<mainClass>com.github.zjor.App</mainClass>-->
+								<!--</manifest>-->
+							<!--</archive>-->
+							<!--<descriptorRefs>-->
+								<!--<descriptorRef>jar-with-dependencies</descriptorRef>-->
+							<!--</descriptorRefs>-->
+						<!--</configuration>-->
+					<!--</execution>-->
+				<!--</executions>-->
+			</plugin>
+		</plugins>
 	</build>
 </project>
