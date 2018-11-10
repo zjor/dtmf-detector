@@ -11,13 +11,16 @@ public class App extends PApplet {
     public static final double SAMPLING_RATE = 44100.0;
     public static final int BANDS = 256;
 
-    private float bandWidth;
-
     private FFT fft;
     private float[] spectrum = new float[BANDS];
 
     private PFont titleFont;
     private PFont normalFont;
+    private PFont symbolFont;
+
+    private long lastUpdateTimestamp;
+    private double displayedFirstFreq;
+    private double displayedSecondFreq;
 
     @Override
     public void settings() {
@@ -27,18 +30,14 @@ public class App extends PApplet {
 
     @Override
     public void setup() {
-        String[] fontList = PFont.list();
-        printArray(fontList);
-
         titleFont = createFont("Monospaced", 24);
         normalFont = createFont("Monospaced", 16);
+        symbolFont = createFont("Monospaced", 32);
 
         background(255);
 
         AudioIn audioIn = new AudioIn(this);
         audioIn.start();
-
-        bandWidth = width / BANDS;
 
         fft = new FFT(this, BANDS);
         fft.input(audioIn);
@@ -66,22 +65,43 @@ public class App extends PApplet {
 
         textAlign(CENTER, TOP);
         textFont(titleFont);
-        text("DTMF decoder", width / 2, 8, 0);
+        text("DTMF decoder", width / 2, 24, 0);
 
-
-        for (int i = 0; i < BANDS; i++) {
-            float h = spectrum[i] * height * 20;
-            rect(i * bandWidth, height - h, bandWidth, h);
-        }
+        renderSpectrum(spectrum, 24, 128, width - 48, 100);
 
         textFont(normalFont);
-        text(String.format("%.2f", firstFreq), 96, 16, 0);
-        text(String.format("%.2f", secondFreq), 96, 32, 0);
-        Character digit = resolveDigit(firstFreq, secondFreq);
-        if (digit != null) {
-            text(digit, 96, 96, 0);
+        textAlign(LEFT, TOP);
+        text(String.format("Freq1: %8.2f", displayedFirstFreq), 24, 72, 0);
+        text(String.format("Freq2: %8.2f", displayedSecondFreq), 24, 96, 0);
+
+        if (System.currentTimeMillis() - lastUpdateTimestamp >= 100) {
+            displayedFirstFreq = firstFreq;
+            displayedSecondFreq = secondFreq;
+            lastUpdateTimestamp = System.currentTimeMillis();
         }
 
+        textAlign(CENTER, TOP);
+        textFont(titleFont);
+        text("Detected symbol", width / 2, 256, 0);
+
+        Character digit = resolveDigit(firstFreq, secondFreq);
+        textAlign(CENTER, TOP);
+        if (digit != null) {
+            textFont(symbolFont);
+            text(digit, width / 2, 350, 0);
+        } else {
+            textFont(normalFont);
+            text("Not detected", width / 2, 350, 0);
+        }
+
+    }
+
+    private void renderSpectrum(float[] spectrum, float x, float y, float w, float h) {
+        float bandWidth = w / BANDS;
+        for (int i = 0; i < BANDS; i++) {
+            float bandH = spectrum[i] * height * 20;
+            rect(x + i * bandWidth, y + h - bandH, bandWidth, bandH);
+        }
     }
 
     private static double freq(int n) {
