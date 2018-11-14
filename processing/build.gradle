@@ -1,0 +1,29 @@
+group = 'com.github.zjor'
+version = '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+repositories {
+    maven { url "https://repo.maven.apache.org/maven2" }
+    flatDir { dirs 'libs' }
+}
+
+dependencies {
+    compile group: 'org.processing', name: 'core', version: '3.3.7'
+    compile group: 'org.processing', name: 'sound', version: '3.3.7'
+    compile group: 'jsyn', name: 'jsyn', version: '20171016'
+    compile group: 'javamp3', name: 'javamp3', version: '1.0.3'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'DTMF Detector', 
+                   'Implementation-Version': version,
+                   'Main-Class': 'com.github.zjor.App'
+    }
+    baseName = project.name + '-full'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
