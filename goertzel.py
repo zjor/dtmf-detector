@@ -1,47 +1,35 @@
-# -*- coding: utf-8 -*-
 import re
-import numpy as np 
-import scipy.signal as signal 
 import matplotlib.pyplot as pp
 
-def goertzel(s, ind):
-    """
-    Функция возвращает занчения спектральных отсчетов ДПФ,
-    рассчитанные с использованием алгоримта Герцеля для
-    входного сигнала, заданного параметром s.
-    
-    Входные параметры
-        s   - вектор значений входного сигнала
-        ind - вектор индексов отсчетов ДПФ (индексация начинается с 0)
-    
-    Выходные параметры
-        S   - Вектор спектральных отсчетов ДПФ, соответсвующих индексам ind
-    
-    Author: Sergey Bakhurin (dsplib.org)
-    """
-    N = len(s)
-    NF = float(N)
-    S = np.zeros(len(ind), dtype='complex128')
-    for k in range(len(ind)):
-        w = np.exp(2j * np.pi * float(ind[k]) / NF)
-        alpha = 2.0 * np.cos(2.0 * np.pi * float(ind[k])/NF)
-        b = np.array([w, -1.0, 0.0])
-        a = np.array([1.0, -alpha, 1.0])
-        X = signal.lfilter(b, a, s)
-        S[k] = X[N-1]
-    return S
+from math import pi, cos, sin, sqrt
 
-
-# Частота дискретизации DTMF
+# Discretisation frequency
 fd = 9615.0 # 8000.0
 
-# Количество отсчетов DTMF сигнала
+# Number of samples
 N  = 256 # 205
 
-# Вектор частот DTMF тонов
-frq = np.array([697, 770, 852, 941, 1209, 1336, 1477, 1633], dtype = 'float64')
-ix = map(lambda f: int(f * N / fd), frq)
+# Frequencies
+frequencies = [697.0, 770.0, 852.0, 941.0, 1209.0, 1336.0, 1477.0, 1633.0]
 
+# Sample indexes
+ix = map(lambda f: int(f * N / fd), frequencies)
+
+phases = map(lambda k: 2.0 * pi * k / N, ix)
+cosines = map(lambda phase: cos(phase), phases)
+sines = map(lambda phase: sin(phase), phases)
+
+def goertzel(s, ix):
+    N = len(s)
+    result = []
+    for k in range(0, len(ix)):        
+        a = 2.0 * cosines[k]
+        v = [.0]*(N + 2)
+        for i in range(0, N):
+            v[i] = s[i] + a * v[i - 1] - v[i - 2]
+        w = (cosines[k], sines[k])
+        result.append(sqrt((w[0] * v[N - 1] - v[N - 2])**2 + (w[1] * v[N - 1])**2))
+    return result
 
 data = []
 with open('digit-3.txt') as f:
@@ -56,6 +44,8 @@ with open('digit-3.txt') as f:
 			data.append(packet)
 
 
-s = np.abs(goertzel(data[11], ix))
+
+s = goertzel(data[11], ix)
+print s
 pp.stem(s)
 pp.show()
