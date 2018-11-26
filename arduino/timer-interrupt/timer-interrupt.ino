@@ -7,8 +7,17 @@ void setup() {
   cli();
   
   DDRB |= (1 << led_pin);
+  initTimer();
+  
+  sei();
+}
 
-// Reset Timer1 Control Reg A
+void loop() {  
+  delay(500);
+}
+
+void initTimer() {
+  // Reset Timer1 Control Reg A
   TCCR1A = 0;
 
 // Set CTC mode
@@ -26,14 +35,6 @@ void setup() {
 
 // Enable Timer 1 compare interrupt
   TIMSK1 = (1 << OCIE1A);
-  
-  sei();
-}
-
-void loop() {
-  
-  delay(500);
-
 }
 
 ISR (TIMER1_COMPA_vect) {
