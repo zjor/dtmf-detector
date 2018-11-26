@@ -19,16 +19,22 @@ phases = map(lambda k: 2.0 * pi * k / N, ix)
 cosines = map(lambda phase: cos(phase), phases)
 sines = map(lambda phase: sin(phase), phases)
 
+print ix
+print cosines
+print sines
+
 def goertzel(s, ix):
     N = len(s)
     result = []
     for k in range(0, len(ix)):        
         a = 2.0 * cosines[k]
-        v = [.0]*(N + 2)
-        for i in range(0, N):
-            v[i] = s[i] + a * v[i - 1] - v[i - 2]
-        w = (cosines[k], sines[k])
-        result.append(sqrt((w[0] * v[N - 1] - v[N - 2])**2 + (w[1] * v[N - 1])**2))
+        v = [.0]*(N + 2)        
+        for i in range(2, N + 2):            
+            v[i] = s[i - 2] + a * v[i - 1] - v[i - 2]
+        real = cosines[k] * v[N + 1] - v[N]
+        im = sines[k] * v[N + 1]
+        
+        result.append(sqrt(real * real + im * im))
     return result
 
 data = []
@@ -43,9 +49,9 @@ with open('digit-3.txt') as f:
 		elif line == '[ end ]':
 			data.append(packet)
 
+print data[11]
 
-
-s = goertzel(data[11], ix)
-print s
-pp.stem(s)
-pp.show()
+# s = goertzel(data[11], ix)
+# print s
+# pp.stem(s)
+# pp.show()
