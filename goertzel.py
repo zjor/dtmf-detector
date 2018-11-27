@@ -4,12 +4,12 @@ import matplotlib.pyplot as pp
 from math import pi, cos, sin, sqrt
 
 # Discretisation frequency
-# fd = 9615.0
-fd = 8000.0
+fd = 9615.0
+# fd = 8000.0
 
 # Number of samples
-# N  = 256
-N = 205
+N  = 256
+# N = 205
 
 # Frequencies
 frequencies = [697.0, 770.0, 852.0, 941.0, 1209.0, 1336.0, 1477.0, 1633.0]
