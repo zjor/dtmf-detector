@@ -1,6 +1,6 @@
 #define N           205
 #define IX_LEN      8
-#define THRESHOLD   200.0
+#define THRESHOLD   100.0
 
 const int adc_channel = 0;
 const uint16_t t1_load = 0;
@@ -97,6 +97,8 @@ char detect_digit(float *spectrum) {
   }
 
   if (row != -1 && col != -1) {
+    Serial.println(row);
+    Serial.println(col - 4);
     return table[row][col - 4];
   } else {
     return 0;

@@ -4,10 +4,12 @@ import matplotlib.pyplot as pp
 from math import pi, cos, sin, sqrt
 
 # Discretisation frequency
-fd = 9615.0 # 8000.0
+# fd = 9615.0
+fd = 8000.0
 
 # Number of samples
-N  = 256 # 205
+# N  = 256
+N = 205
 
 # Frequencies
 frequencies = [697.0, 770.0, 852.0, 941.0, 1209.0, 1336.0, 1477.0, 1633.0]
@@ -37,21 +39,31 @@ def goertzel(s, ix):
         result.append(sqrt(real * real + im * im))
     return result
 
-data = []
-with open('digit-3.txt') as f:
-	packet = []
-	for line in f.readlines():
-		line = line.strip()
-		if line == '[ start ]':
-			packet = []
-		elif re.match(r'^\d{3}$', line):
-			packet.append(int(line))
-		elif line == '[ end ]':
-			data.append(packet)
+def load256Samples(filename):
+    data = []
+    with open(filename) as f:
+    	packet = []
+    	for line in f.readlines():
+    		line = line.strip()
+    		if line == '[ start ]':
+    			packet = []
+    		elif re.match(r'^\d{3}$', line):
+    			packet.append(int(line))
+    		elif line == '[ end ]':
+    			data.append(packet)
+    return data[11]
 
-print data[11]
+def load205Samples(filename):
+    data = []
+    with open(filename) as f:
+        for line in f.readlines():
+            data.append(int(line.strip()))
+    return data
 
-# s = goertzel(data[11], ix)
-# print s
-# pp.stem(s)
-# pp.show()
+
+data = load205Samples('digit-3-205.txt')
+
+s = goertzel(data, ix)
+print s
+pp.stem(s)
+pp.show()
