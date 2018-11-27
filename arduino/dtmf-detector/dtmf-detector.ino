@@ -7,38 +7,30 @@
 
 #include "font8x8.h"
 
-//#define N           205
 #define N           256
 #define IX_LEN      8
 #define THRESHOLD   20
 
 /* Display PINs */
-#define CLK     8
-#define CS      9
-#define DIN     10
+#define CLK     13//8
+#define CS      12 //9
+#define DIN     8 //10
 
 LedControl matrix = LedControl(DIN, CLK, CS, 1);
 int8_t lastDetectedDigit = -1;
+int8_t currentDigit = -1;
 uint32_t lastDetectedMillis = 0;
 
 const int adc_channel = 0;
-const uint16_t t1_load = 0;
 
-// 250 corresponds to 8kHz
-const uint16_t t1_comp = 250; 
-
-uint16_t samples[N];
+volatile uint16_t samples[N];
 volatile uint16_t samplePos = 0;
 
-float spectrum[IX_LEN];
+float spectrum[IX_LEN] = {0,0,0,0,0,0,0,0};
 
 // Frequences [697.0, 770.0, 852.0, 941.0, 1209.0, 1336.0, 1477.0, 1633.0]
 // Corresponding spectrum indexes [18, 20, 22, 25, 32, 35, 39, 43]
-/*
-[0.9039892931234433, 0.881921264348355, 0.8577286100002721, 0.8175848131515837, 0.7071067811865476, 0.6531728429537769, 0.5758081914178454, 0.49289819222978415]
-[0.4275550934302821, 0.47139673682599764, 0.5141027441932217, 0.5758081914178453, 0.7071067811865475, 0.7572088465064845, 0.8175848131515837, 0.8700869911087113]
 
- */
 // Calculated for 9615Hz 256 samples  
 const float cos_t[IX_LEN] = {
   0.9039892931234433, 0.881921264348355, 0.8577286100002721, 0.8175848131515837, 
@@ -49,19 +41,7 @@ const float sin_t[IX_LEN] = {
   0.4275550934302821, 0.47139673682599764, 0.5141027441932217, 0.5758081914178453, 
   0.7071067811865475, 0.7572088465064845, 0.8175848131515837, 0.8700869911087113  
   };
- 
-
-// Calculated for 8kHz 205 samples 
-//const float cos_t[IX_LEN] = {
-//  0.8672996477658763, 0.8351757828373181, 0.7999146334222695, 0.7414333498411733, 
-//  0.6062254109666381, 0.5044173580296265, 0.42300402965485884, 0.30901699437494745
-//  };
-//  
-//const float sin_t[IX_LEN] = {
-//  0.4977864210534341, 0.5499831013422802, 0.6001138052377366, 0.6710265179136339, 
-//  0.7952928712734264, 0.8634599752845592, 0.906127800531333, 0.9510565162951535
-//  };
-
+   
 const char table[4][4] = {
   {'1', '2', '3', 'A'},
   {'4', '5', '6', 'B'},
@@ -90,40 +70,20 @@ void initADC() {
   DIDR0  = _BV(adc_channel); // Turn off digital input for ADC pin      
 }
 
-void initTimer() {
-  // Reset Timer1 Control Reg A
-  TCCR1A = 0;
-
-// Set CTC mode
-  TCCR1B &= ~(1 << WGM13);
-  TCCR1B |= (1 << WGM12);
-
-// Set prescaler to 8
-  TCCR1B &= ~(1 << CS12);
-  TCCR1B |= (1 << CS11);
-  TCCR1B &= ~(1 << CS10);
-
-// Reset Timer 1 and set compare value
-  TCNT1 = t1_load;
-  OCR1B = t1_comp;
-
-// Enable Timer 1 compare interrupt
-  TIMSK1 = (1 << OCIE1B);
-}
-
-void goertzel(uint16_t *samples, float *spectrum) {
+void goertzel(volatile uint16_t *samples, float *spectrum) {
   float v[N + 2];
+  float re, im, amp;
     
-  for (uint16_t k = 0; k < IX_LEN; k++) {
+  for (uint8_t k = 0; k < IX_LEN; k++) {
     float a = 2. * cos_t[k];
     v[0] = v[1] = .0;    
     for (uint16_t i = 2; i < N + 2; i++) {
       v[i] = float(samples[i - 2]) + a * v[i - 1] - v[i - 2];      
     }
-    float re = cos_t[k] * v[N + 1] - v[N];
-    float im = sin_t[k] * v[N + 1];
-
-    spectrum[k] = sqrt(re * re + im * im);        
+    re = cos_t[k] * v[N + 1] - v[N];
+    im = sin_t[k] * v[N + 1];
+    amp = sqrt(re * re + im * im);
+    spectrum[k] = amp;        
   } 
 }
 
@@ -154,41 +114,37 @@ int8_t get_single_index_above_threshold(float *a, uint16_t len, float threshold)
   return ix;  
 }
 
-int8_t detect_digit(float *spectrum) {
+char detect_digit(float *spectrum) {
   float avg_row = avg(spectrum, 4);
   float avg_col = avg(&spectrum[4], 4);
   int8_t row = get_single_index_above_threshold(spectrum, 4, avg_row);
   int8_t col = get_single_index_above_threshold(&spectrum[4], 4, avg_col);
-//  Serial.print(avg_row);
-//  Serial.print("\t");
-//  Serial.println(row);
-//
-//  Serial.print(avg_col);
-//  Serial.print("\t");
-//  Serial.println(col);
   
   if (row != -1 && col != -1) {
-    return char_indexes[row][col];
+    return table[row][col];
   } else {
     return 0;
   }
 }
 
 void displayDigit(uint8_t c) {
+  if (currentDigit == c) {
+    return;
+  }
   
   for (uint8_t i = 0; i < 8; i++) {
-    matrix.setColumn(0, 7 - i, IMAGES[2][i]); 
+    matrix.setColumn(0, 7 - i, IMAGES[c][i]); 
   }
+  currentDigit = c;
 }
 
 void setup() {  
   cli();
   initADC();
-//  initTimer(); 
   sei();
 
   matrix.shutdown(0, false);
-  matrix.setIntensity(0, 8);
+  matrix.setIntensity(0, 2);
 
   Serial.begin(115200);
   
@@ -199,41 +155,23 @@ unsigned long z = 0;
 void loop() {
   while(ADCSRA & _BV(ADIE)); // Wait for audio sampling to finish
 
-  if (z % 25 == 0) {    
-  
+  goertzel(samples, spectrum);   
+  samplePos = 0;
 
-//    Serial.println("[ begin ]");
-//    for (int i = 0; i < N; i++) {
-//      Serial.println(samples[i]);
-//    }
-//    Serial.println("[ end ]");
-    
-    goertzel(samples, spectrum);
+//  if (z % 25 == 0) {
+    displayDigit(2); 
     
     for (int i = 0; i < IX_LEN; i++) {
       Serial.print(spectrum[i]);
       Serial.print("\t");
     }
     Serial.println();
-    int8_t digit = detect_digit(spectrum);    
-    if (digit == -1) {
-      Serial.println("Not detected");
-      if (millis() - lastDetectedMillis > 1000) {
-//        matrix.clearDisplay(0);
-      }
-    } else {
-      Serial.print("Detected: ");
-      Serial.println(digit);
-      if (digit != lastDetectedDigit) {
-        lastDetectedDigit = digit;
-//        displayDigit(digit);
-      }
-      lastDetectedMillis = millis();      
-    }
-  }
+    char digit = detect_digit(spectrum);
+    Serial.println(digit);
+//  }
   z++;
   
-  samplePos = 0;
+  
 
   ADCSRA |= _BV(ADIE);       // Resume sampling interrupt
 }
@@ -247,7 +185,3 @@ ISR(ADC_vect) {
     ADCSRA &= ~_BV(ADIE); // Buffer full, interrupt off
   }
 }
-
-//ISR(TIMER1_COMPB_vect) {
-//  TCNT1 = t1_load;  
-//}
