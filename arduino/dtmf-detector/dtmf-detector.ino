@@ -1,7 +1,25 @@
+/**
+ * 8x8 LED matrix display with MAX7219 driver
+ * +5V, GND, CLK (8 pin), CS (9 pin), DIN (10 pin)
+ */
+#include <binary.h> 
+#include <LedControl.h>
+
+#include "font8x8.h"
+
 //#define N           205
 #define N           256
 #define IX_LEN      8
 #define THRESHOLD   20
+
+/* Display PINs */
+#define CLK     8
+#define CS      9
+#define DIN     10
+
+LedControl matrix = LedControl(DIN, CLK, CS, 1);
+int8_t lastDetectedDigit = -1;
+uint32_t lastDetectedMillis = 0;
 
 const int adc_channel = 0;
 const uint16_t t1_load = 0;
@@ -50,6 +68,14 @@ const char table[4][4] = {
   {'7', '8', '9', 'C'},
   {'*', '0', '#', 'D'}
 };
+
+const uint8_t char_indexes[4][4] = {
+  {0, 1, 2, 12},
+  {3, 4, 5, 13},
+  {6, 7, 8, 14},
+  {10, 9, 11, 15}
+};
+
 
 void initADC() {
   // Init ADC; f = ( 16MHz/prescaler ) / 13 cycles/conversion 
@@ -128,7 +154,7 @@ int8_t get_single_index_above_threshold(float *a, uint16_t len, float threshold)
   return ix;  
 }
 
-char detect_digit(float *spectrum) {
+int8_t detect_digit(float *spectrum) {
   float avg_row = avg(spectrum, 4);
   float avg_col = avg(&spectrum[4], 4);
   int8_t row = get_single_index_above_threshold(spectrum, 4, avg_row);
@@ -142,9 +168,16 @@ char detect_digit(float *spectrum) {
 //  Serial.println(col);
   
   if (row != -1 && col != -1) {
-    return table[row][col];
+    return char_indexes[row][col];
   } else {
     return 0;
+  }
+}
+
+void displayDigit(uint8_t c) {
+  
+  for (uint8_t i = 0; i < 8; i++) {
+    matrix.setColumn(0, 7 - i, IMAGES[2][i]); 
   }
 }
 
@@ -154,7 +187,11 @@ void setup() {
 //  initTimer(); 
   sei();
 
+  matrix.shutdown(0, false);
+  matrix.setIntensity(0, 8);
+
   Serial.begin(115200);
+  
 }
 
 unsigned long z = 0;
@@ -162,7 +199,8 @@ unsigned long z = 0;
 void loop() {
   while(ADCSRA & _BV(ADIE)); // Wait for audio sampling to finish
 
-  if (z % 25 == 0) {
+  if (z % 25 == 0) {    
+  
 
 //    Serial.println("[ begin ]");
 //    for (int i = 0; i < N; i++) {
@@ -171,18 +209,26 @@ void loop() {
 //    Serial.println("[ end ]");
     
     goertzel(samples, spectrum);
-  
+    
     for (int i = 0; i < IX_LEN; i++) {
       Serial.print(spectrum[i]);
       Serial.print("\t");
     }
     Serial.println();
-    char digit = detect_digit(spectrum);
-    if (digit == 0) {
-      Serial.println("Not detected");      
+    int8_t digit = detect_digit(spectrum);    
+    if (digit == -1) {
+      Serial.println("Not detected");
+      if (millis() - lastDetectedMillis > 1000) {
+//        matrix.clearDisplay(0);
+      }
     } else {
       Serial.print("Detected: ");
       Serial.println(digit);
+      if (digit != lastDetectedDigit) {
+        lastDetectedDigit = digit;
+//        displayDigit(digit);
+      }
+      lastDetectedMillis = millis();      
     }
   }
   z++;
