@@ -2,7 +2,8 @@
  * 8x8 LED matrix display with MAX7219 driver
  * +5V, GND, CLK (8 pin), CS (9 pin), DIN (10 pin)
  */
-#include <binary.h> 
+#include <binary.h>
+#include <avr/pgmspace.h> 
 
 #define N           256
 #define IX_LEN      8
@@ -17,24 +18,24 @@ float spectrum[IX_LEN] = {0,0,0,0,0,0,0,0};
 // Corresponding spectrum indexes [18, 20, 22, 25, 32, 35, 39, 43]
 
 // Calculated for 9615Hz 256 samples  
-const float cos_t[IX_LEN] = {
+const float cos_t[IX_LEN] PROGMEM = {
   0.9039892931234433, 0.881921264348355, 0.8577286100002721, 0.8175848131515837, 
   0.7071067811865476, 0.6531728429537769, 0.5758081914178454, 0.49289819222978415
   };
   
-const float sin_t[IX_LEN] = {
+const float sin_t[IX_LEN] PROGMEM = {
   0.4275550934302821, 0.47139673682599764, 0.5141027441932217, 0.5758081914178453, 
   0.7071067811865475, 0.7572088465064845, 0.8175848131515837, 0.8700869911087113  
   };
    
-const char table[4][4] = {
+const char table[4][4] PROGMEM = {
   {'1', '2', '3', 'A'},
   {'4', '5', '6', 'B'},
   {'7', '8', '9', 'C'},
   {'*', '0', '#', 'D'}
 };
 
-const uint8_t char_indexes[4][4] = {
+const uint8_t char_indexes[4][4] PROGMEM = {
   {0, 1, 2, 12},
   {3, 4, 5, 13},
   {6, 7, 8, 14},
@@ -60,15 +61,18 @@ void goertzel(volatile uint16_t *samples, float *spectrum) {
   float re, im, amp;
     
   for (uint8_t k = 0; k < IX_LEN; k++) {
-    float a = 2. * cos_t[k];
+    float cos = pgm_read_float(&(cos_t[k]));
+    float sin = pgm_read_float(&(sin_t[k]));
+    
+    float a = 2. * cos;
     v_0 = v_1 = v_2 = 0;  
     for (uint16_t i = 0; i < N; i++) {
       v_0 = v_1;
       v_1 = v_2;
       v_2 = float(samples[i]) + a * v_1 - v_0;
     }
-    re = cos_t[k] * v_2 - v_1;
-    im = sin_t[k] * v_2;
+    re = cos * v_2 - v_1;
+    im = sin * v_2;
     amp = sqrt(re * re + im * im);
     spectrum[k] = amp;        
   } 
@@ -108,7 +112,7 @@ char detect_digit(float *spectrum) {
   int8_t col = get_single_index_above_threshold(&spectrum[4], 4, avg_col);
   
   if (row != -1 && col != -1) {
-    return table[row][col];
+    return (char) pgm_read_byte(&(table[row][col]));
   } else {
     return 0;
   }
