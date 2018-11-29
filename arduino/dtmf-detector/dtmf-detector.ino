@@ -71,17 +71,19 @@ void initADC() {
 }
 
 void goertzel(volatile uint16_t *samples, float *spectrum) {
-  float v[N + 2];
+  float v_0, v_1, v_2;
   float re, im, amp;
     
   for (uint8_t k = 0; k < IX_LEN; k++) {
     float a = 2. * cos_t[k];
-    v[0] = v[1] = .0;    
-    for (uint16_t i = 2; i < N + 2; i++) {
-      v[i] = float(samples[i - 2]) + a * v[i - 1] - v[i - 2];      
+    v_0 = v_1 = v_2 = 0;  
+    for (uint16_t i = 0; i < N; i++) {
+      v_0 = v_1;
+      v_1 = v_2;
+      v_2 = float(samples[i]) + a * v_1 - v_0;
     }
-    re = cos_t[k] * v[N + 1] - v[N];
-    im = sin_t[k] * v[N + 1];
+    re = cos_t[k] * v_2 - v_1;
+    im = sin_t[k] * v_2;
     amp = sqrt(re * re + im * im);
     spectrum[k] = amp;        
   } 
@@ -159,7 +161,7 @@ void loop() {
   samplePos = 0;
 
 //  if (z % 25 == 0) {
-    displayDigit(2); 
+    displayDigit(0); 
     
     for (int i = 0; i < IX_LEN; i++) {
       Serial.print(spectrum[i]);

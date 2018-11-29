@@ -55,24 +55,21 @@ const char table[4][4] = {
 };
 
 void goertzel(uint16_t *samples, float *spectrum) {
-  float v[N + 2];
+  float v_0, v_1, v_2;
     
   for (uint8_t k = 0; k < IX_LEN; k++) {
     float a = 2. * cos_t[k];
-
-    for (uint16_t i = 0; i < N + 2; i++) {
-      v[i] = .0;
+    v_0 = v_1 = v_2 = .0;    
+    for (uint16_t i = 0; i < N; i++) {
+    	v_2 = v_1;
+    	v_1 = v_0;
+		v_0 = (float)(samples[i]) + a * v_1 - v_2;
     }
-    
-    for (uint16_t i = 2; i < N + 2; i++) {
-      v[i] = (float)(samples[i - 2]) + a * v[i - 1] - v[i - 2];      
-    }
-    float re = cos_t[k] * v[N + 1] - v[N];
-    float im = sin_t[k] * v[N + 1];
+    float re = cos_t[k] * v_0 - v_1;
+    float im = sin_t[k] * v_0;
 
     spectrum[k] = sqrt(re * re + im * im);        
-  }
-  
+  }  
 }
 
 char detect_digit(float *spectrum) {
