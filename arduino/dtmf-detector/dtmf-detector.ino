@@ -3,25 +3,10 @@
  * +5V, GND, CLK (8 pin), CS (9 pin), DIN (10 pin)
  */
 #include <binary.h> 
-#include <LedControl.h>
-
-#include "font8x8.h"
 
 #define N           256
 #define IX_LEN      8
 #define THRESHOLD   20
-
-/* Display PINs */
-#define CLK     13//8
-#define CS      12 //9
-#define DIN     8 //10
-
-LedControl matrix = LedControl(DIN, CLK, CS, 1);
-int8_t lastDetectedDigit = -1;
-int8_t currentDigit = -1;
-uint32_t lastDetectedMillis = 0;
-
-const int adc_channel = 0;
 
 volatile uint16_t samples[N];
 volatile uint16_t samplePos = 0;
@@ -59,7 +44,7 @@ const uint8_t char_indexes[4][4] = {
 
 void initADC() {
   // Init ADC; f = ( 16MHz/prescaler ) / 13 cycles/conversion 
-  ADMUX  = adc_channel; // Channel sel, right-adj, use AREF pin
+  ADMUX  = 0; // Channel sel, right-adj, use AREF pin
   ADCSRA = _BV(ADEN)  | // ADC enable
            _BV(ADSC)  | // ADC start
            _BV(ADATE) | // Auto trigger
@@ -67,7 +52,7 @@ void initADC() {
            _BV(ADPS2) | _BV(ADPS1) | _BV(ADPS0); // 128:1 / 13 = 9615 Hz
 //  ADCSRB = _BV(ADTS2) | _BV(ADTS0);              // Timer/Counter1 Compare Match B
   ADCSRB = 0; // Free-run mode
-  DIDR0  = _BV(adc_channel); // Turn off digital input for ADC pin      
+  DIDR0  = _BV(0); // Turn off digital input for ADC pin      
 }
 
 void goertzel(volatile uint16_t *samples, float *spectrum) {
@@ -129,27 +114,12 @@ char detect_digit(float *spectrum) {
   }
 }
 
-void displayDigit(uint8_t c) {
-  if (currentDigit == c) {
-    return;
-  }
-  
-  for (uint8_t i = 0; i < 8; i++) {
-    matrix.setColumn(0, 7 - i, IMAGES[c][i]); 
-  }
-  currentDigit = c;
-}
-
 void setup() {  
   cli();
   initADC();
   sei();
 
-  matrix.shutdown(0, false);
-  matrix.setIntensity(0, 2);
-
   Serial.begin(115200);
-  
 }
 
 unsigned long z = 0;
@@ -161,7 +131,6 @@ void loop() {
   samplePos = 0;
 
 //  if (z % 25 == 0) {
-    displayDigit(0); 
     
     for (int i = 0; i < IX_LEN; i++) {
       Serial.print(spectrum[i]);
