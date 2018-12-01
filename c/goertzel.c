@@ -14,8 +14,12 @@ const float sin_t[IX_LEN] = {
   0.4275550934302821, 0.47139673682599764, 0.5141027441932217, 0.5758081914178453, 0.7071067811865475, 0.7572088465064845, 0.8175848131515837, 0.8700869911087113
   };
 
+// pre-multiplied by 1 << 15
+const uint16_t fp_cos_t[] = { 29621, 28898, 28106, 26790, 23170, 21403, 18868, 16151 };
+const uint16_t fp_sin_t[] = { 14010, 15446, 16846, 18868, 23170, 24812, 26790, 28511 };
 
-uint16_t samples_noise[] = {
+
+int16_t samples_noise[] = {
 	510, 511, 510, 511, 511, 511, 511, 511, 512, 513, 512, 512, 512, 512, 512, 512, 513, 512, 512, 513, 
 	513, 513, 512, 513, 513, 512, 512, 512, 513, 513, 512, 512, 512, 512, 512, 512, 513, 512, 512, 512, 
 	512, 511, 511, 511, 512, 512, 512, 512, 511, 512, 512, 512, 512, 511, 511, 511, 511, 512, 511, 511, 
@@ -28,7 +32,7 @@ uint16_t samples_noise[] = {
 	512, 513, 512, 512, 512, 512, 512, 511, 512, 512, 512, 511, 513, 512, 511, 512, 512, 511, 511, 511, 
 	511, 511, 511, 511, 512};
 
-uint16_t samples_3[] = {
+int16_t samples_3[] = {
 	506, 501, 506, 513, 518, 514, 504, 500, 507, 520, 529, 531, 521, 509, 502, 507, 
 	516, 518, 513, 504, 498, 504, 517, 528, 530, 522, 511, 505, 509, 517, 520, 513, 
 	502, 495, 500, 515, 525, 528, 521, 510, 505, 509, 518, 519, 512, 499, 493, 497, 
@@ -54,21 +58,51 @@ const char table[4][4] = {
 	{'*', '0', '#', 'D'}
 };
 
-void goertzel(uint16_t *samples, float *spectrum) {
+void goertzel(int16_t *samples, float *spectrum) {
   float v_0, v_1, v_2;
     
   for (uint8_t k = 0; k < IX_LEN; k++) {
-    float a = 2. * cos_t[k];
+    float a = 2.0 * cos_t[k] ;
     v_0 = v_1 = v_2 = .0;    
     for (uint16_t i = 0; i < N; i++) {
     	v_2 = v_1;
     	v_1 = v_0;
-		v_0 = (float)(samples[i]) + a * v_1 - v_2;
+		v_0 = (float)(samples[i] - 400) + a * v_1 - v_2;
     }
     float re = cos_t[k] * v_0 - v_1;
     float im = sin_t[k] * v_0;
 
     spectrum[k] = sqrt(re * re + im * im);        
+  }  
+}
+
+int16_t fp_mul(int16_t a, int16_t b) {
+	return ((int32_t)a * (int32_t)b) >> 8;
+}
+
+int16_t fp_umul(int16_t a, uint16_t b) {
+	return ((int32_t)a * (int32_t)b) >> 8;
+}
+
+float to_float(int16_t a) {
+	return ((float)a) / (1 << 8);
+}
+
+void fp_goertzel(int16_t *samples, float *spectrum) {
+  int16_t v_0, v_1, v_2;
+    
+  for (uint8_t k = 0; k < IX_LEN; k++) {
+    uint16_t a = fp_cos_t[k] << 1;
+    v_0 = v_1 = v_2 = 0;    
+    for (uint16_t i = 0; i < N; i++) {
+    	v_2 = v_1;
+    	v_1 = v_0;
+		v_0 = (samples[i] << 8) + fp_umul(v_1, a) - v_2;
+    }
+    int16_t re = fp_umul(v_0, fp_cos_t[k]) - v_1;
+    int16_t im = fp_umul(v_0, fp_sin_t[k]);
+
+    spectrum[k] = sqrt(to_float(fp_mul(re, re) + fp_mul(im, im)));
   }  
 }
 

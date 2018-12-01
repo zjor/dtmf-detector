@@ -3,20 +3,24 @@
  * +5V, GND, CLK (8 pin), CS (9 pin), DIN (10 pin)
  */
 #include <binary.h>
-#include <avr/pgmspace.h> 
+#include <avr/pgmspace.h>
+
+#include <LEDMatrixDriver.hpp>
+
+#define CS_PIN      9
 
 #define N           256
 #define IX_LEN      8
 #define THRESHOLD   20
 
-volatile uint16_t samples[N];
+LEDMatrixDriver lmd(1, CS_PIN);
+
+uint8_t samples[N];
 volatile uint16_t samplePos = 0;
 
-float spectrum[IX_LEN] = {0,0,0,0,0,0,0,0};
+float spectrum[IX_LEN];
 
 // Frequences [697.0, 770.0, 852.0, 941.0, 1209.0, 1336.0, 1477.0, 1633.0]
-// Corresponding spectrum indexes [18, 20, 22, 25, 32, 35, 39, 43]
-
 // Calculated for 9615Hz 256 samples  
 const float cos_t[IX_LEN] PROGMEM = {
   0.9039892931234433, 0.881921264348355, 0.8577286100002721, 0.8175848131515837, 
@@ -36,12 +40,31 @@ const char table[4][4] PROGMEM = {
 };
 
 const uint8_t char_indexes[4][4] PROGMEM = {
-  {0, 1, 2, 12},
-  {3, 4, 5, 13},
-  {6, 7, 8, 14},
-  {10, 9, 11, 15}
+  {3, 4, 5, 12},
+  {6, 7, 8, 13},
+  {9, 10, 11, 14},
+  {2, 3, 11, 15}
 };
 
+byte font[17][8] = { 
+                     {0x00,0x38,0x44,0x4c,0x54,0x64,0x44,0x38}, // 0
+                     {0x04,0x0c,0x14,0x24,0x04,0x04,0x04,0x04}, // 1
+                     {0x00,0x30,0x48,0x04,0x04,0x38,0x40,0x7c}, // 2
+                     {0x00,0x38,0x04,0x04,0x18,0x04,0x44,0x38}, // 3
+                     {0x00,0x04,0x0c,0x14,0x24,0x7e,0x04,0x04}, // 4
+                     {0x00,0x7c,0x40,0x40,0x78,0x04,0x04,0x38}, // 5
+                     {0x00,0x38,0x40,0x40,0x78,0x44,0x44,0x38}, // 6
+                     {0x00,0x7c,0x04,0x04,0x08,0x08,0x10,0x10}, // 7
+                     {0x00,0x3c,0x44,0x44,0x38,0x44,0x44,0x78}, // 8
+                     {0x00,0x38,0x44,0x44,0x3c,0x04,0x04,0x78}, // 9
+                     {0x00,0x1c,0x22,0x42,0x42,0x7e,0x42,0x42}, // A
+                     {0x00,0x78,0x44,0x44,0x78,0x44,0x44,0x7c}, // B
+                     {0x00,0x3c,0x44,0x40,0x40,0x40,0x44,0x7c}, // C
+                     {0x00,0x7c,0x42,0x42,0x42,0x42,0x44,0x78}, // D
+                     {0,0,0,0,0,0,0,0}, // SPACE
+                     {0x00,0x0a,0x7f,0x14,0x28,0xfe,0x50,0x00}, // #
+                     {0x00,0x10,0x54,0x38,0x10,0x38,0x54,0x10}  // *                                        
+                  };
 
 void initADC() {
   // Init ADC; f = ( 16MHz/prescaler ) / 13 cycles/conversion 
@@ -54,9 +77,10 @@ void initADC() {
 //  ADCSRB = _BV(ADTS2) | _BV(ADTS0);              // Timer/Counter1 Compare Match B
   ADCSRB = 0; // Free-run mode
   DIDR0  = _BV(0); // Turn off digital input for ADC pin      
+  TIMSK0 = 0;                // Timer0 off
 }
 
-void goertzel(volatile uint16_t *samples, float *spectrum) {
+void goertzel(uint8_t *samples, float *spectrum) {
   float v_0, v_1, v_2;
   float re, im, amp;
     
@@ -69,7 +93,7 @@ void goertzel(volatile uint16_t *samples, float *spectrum) {
     for (uint16_t i = 0; i < N; i++) {
       v_0 = v_1;
       v_1 = v_2;
-      v_2 = float(samples[i]) + a * v_1 - v_0;
+      v_2 = (float)(samples[i]) + a * v_1 - v_0;
     }
     re = cos * v_2 - v_1;
     im = sin * v_2;
@@ -118,35 +142,60 @@ char detect_digit(float *spectrum) {
   }
 }
 
+void drawSprite(byte* sprite) {
+  // The mask is used to get the column bit from the sprite row
+  byte mask = B10000000;
+  
+  for(int iy = 0; iy < 8; iy++ ) {
+    for(int ix = 0; ix < 8; ix++ ) {
+      lmd.setPixel(ix, iy, (bool)(sprite[iy] & mask ));
+
+      // shift the mask by one pixel to the right
+      mask = mask >> 1;
+    }
+
+    // reset column mask
+    mask = B10000000;
+  }
+}
+
 void setup() {  
   cli();
   initADC();
   sei();
 
   Serial.begin(115200);
+  
+  lmd.setEnabled(true);
+  lmd.setIntensity(2);
+  lmd.clear();
+  lmd.display();
 }
 
 unsigned long z = 0;
+char digit;
 
 void loop() {
   while(ADCSRA & _BV(ADIE)); // Wait for audio sampling to finish
-
-  goertzel(samples, spectrum);   
-  samplePos = 0;
-
-//  if (z % 25 == 0) {
-    
+  
+  if (z % 5 == 0) {    
     for (int i = 0; i < IX_LEN; i++) {
       Serial.print(spectrum[i]);
       Serial.print("\t");
     }
-    Serial.println();
-    char digit = detect_digit(spectrum);
+    Serial.println();    
+    if (digit >= '0' && digit <= '7') {
+      drawSprite(font[10]);
+      lmd.display();
+    }
     Serial.println(digit);
-//  }
+  } else {
+    goertzel(samples, spectrum);  
+    digit = detect_digit(spectrum);    
+  }
   z++;
-  
-  
+
+  samplePos = 0;
 
   ADCSRA |= _BV(ADIE);       // Resume sampling interrupt
 }
@@ -154,7 +203,7 @@ void loop() {
 ISR(ADC_vect) { 
   uint16_t sample = ADC;
 
-  samples[samplePos++] = sample;
+  samples[samplePos++] = sample - 400;
   
   if(samplePos >= N) {
     ADCSRA &= ~_BV(ADIE); // Buffer full, interrupt off
