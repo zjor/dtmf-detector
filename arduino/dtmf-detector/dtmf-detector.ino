@@ -141,7 +141,7 @@ void detect_digit(float *spectrum) {
   int8_t row = get_single_index_above_threshold(spectrum, 4, avg_row);
   int8_t col = get_single_index_above_threshold(&spectrum[4], 4, avg_col);
   
-  if (row != -1 && col != -1) {
+  if (row != -1 && col != -1 && avg_col > 200) {
     detected_digit.digit = pgm_read_byte(&(table[row][col]));
     detected_digit.index = pgm_read_byte(&(char_indexes[row][col]));
   } else {
@@ -181,6 +181,7 @@ void setup() {
   detected_digit.digit = 0;
 }
 
+//uint16_t lastUpdatedMillis = 0;
 unsigned long z = 0;
 
 void loop() {
@@ -189,8 +190,14 @@ void loop() {
   detect_digit(spectrum);
 
   if (detected_digit.digit != 0) {
+//    lastUpdatedMillis = millis();
     drawSprite(font[detected_digit.index]);
     lmd.display();
+  } else {
+//    if (millis() - lastUpdatedMillis > 1000) {
+//      lmd.clear();
+//      lmd.display();
+//    }
   }
   
   if (z % 5 == 0) {    
@@ -199,7 +206,7 @@ void loop() {
       Serial.print("\t");
     }
     Serial.println();    
-    Serial.println(detected_digit.digit);
+    Serial.println((int)detected_digit.digit);
   }
   z++;
 
