@@ -155,7 +155,7 @@ void drawSprite(byte* sprite) {
   
   for(int iy = 0; iy < 8; iy++ ) {
     for(int ix = 0; ix < 8; ix++ ) {
-      lmd.setPixel(ix, iy, (bool)(sprite[iy] & mask ));
+      lmd.setPixel(7 - iy, ix, (bool)(sprite[iy] & mask ));
 
       // shift the mask by one pixel to the right
       mask = mask >> 1;
