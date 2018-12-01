@@ -31,7 +31,14 @@ const float sin_t[IX_LEN] PROGMEM = {
   0.4275550934302821, 0.47139673682599764, 0.5141027441932217, 0.5758081914178453, 
   0.7071067811865475, 0.7572088465064845, 0.8175848131515837, 0.8700869911087113  
   };
-   
+
+typedef struct {
+  char digit;
+  uint8_t index;   
+} digit_t;
+
+digit_t detected_digit;
+
 const char table[4][4] PROGMEM = {
   {'1', '2', '3', 'A'},
   {'4', '5', '6', 'B'},
@@ -40,13 +47,13 @@ const char table[4][4] PROGMEM = {
 };
 
 const uint8_t char_indexes[4][4] PROGMEM = {
-  {3, 4, 5, 12},
-  {6, 7, 8, 13},
-  {9, 10, 11, 14},
-  {2, 3, 11, 15}
+  {1, 2, 3, 10},
+  {4, 5, 6, 11},
+  {7, 8, 9, 12},
+  {15, 0, 14, 13}
 };
 
-byte font[17][8] = { 
+byte font[16][8] = { 
                      {0x00,0x38,0x44,0x4c,0x54,0x64,0x44,0x38}, // 0
                      {0x04,0x0c,0x14,0x24,0x04,0x04,0x04,0x04}, // 1
                      {0x00,0x30,0x48,0x04,0x04,0x38,0x40,0x7c}, // 2
@@ -61,9 +68,8 @@ byte font[17][8] = {
                      {0x00,0x78,0x44,0x44,0x78,0x44,0x44,0x7c}, // B
                      {0x00,0x3c,0x44,0x40,0x40,0x40,0x44,0x7c}, // C
                      {0x00,0x7c,0x42,0x42,0x42,0x42,0x44,0x78}, // D
-                     {0,0,0,0,0,0,0,0}, // SPACE
                      {0x00,0x0a,0x7f,0x14,0x28,0xfe,0x50,0x00}, // #
-                     {0x00,0x10,0x54,0x38,0x10,0x38,0x54,0x10}  // *                                        
+                     {0x00,0x10,0x54,0x38,0x10,0x38,0x54,0x10}  // *
                   };
 
 void initADC() {
@@ -129,16 +135,17 @@ int8_t get_single_index_above_threshold(float *a, uint16_t len, float threshold)
   return ix;  
 }
 
-char detect_digit(float *spectrum) {
+void detect_digit(float *spectrum) {
   float avg_row = avg(spectrum, 4);
   float avg_col = avg(&spectrum[4], 4);
   int8_t row = get_single_index_above_threshold(spectrum, 4, avg_row);
   int8_t col = get_single_index_above_threshold(&spectrum[4], 4, avg_col);
   
   if (row != -1 && col != -1) {
-    return (char) pgm_read_byte(&(table[row][col]));
+    detected_digit.digit = pgm_read_byte(&(table[row][col]));
+    detected_digit.index = pgm_read_byte(&(char_indexes[row][col]));
   } else {
-    return 0;
+    detected_digit.digit = 0;
   }
 }
 
@@ -170,13 +177,21 @@ void setup() {
   lmd.setIntensity(2);
   lmd.clear();
   lmd.display();
+
+  detected_digit.digit = 0;
 }
 
 unsigned long z = 0;
-char digit;
 
 void loop() {
   while(ADCSRA & _BV(ADIE)); // Wait for audio sampling to finish
+  goertzel(samples, spectrum);  
+  detect_digit(spectrum);
+
+  if (detected_digit.digit != 0) {
+    drawSprite(font[detected_digit.index]);
+    lmd.display();
+  }
   
   if (z % 5 == 0) {    
     for (int i = 0; i < IX_LEN; i++) {
@@ -184,14 +199,7 @@ void loop() {
       Serial.print("\t");
     }
     Serial.println();    
-    if (digit >= '0' && digit <= '7') {
-      drawSprite(font[10]);
-      lmd.display();
-    }
-    Serial.println(digit);
-  } else {
-    goertzel(samples, spectrum);  
-    digit = detect_digit(spectrum);    
+    Serial.println(detected_digit.digit);
   }
   z++;
 
