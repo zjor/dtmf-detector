@@ -1,6 +1,6 @@
 import re
 import matplotlib.pyplot as pp
-
+import numpy as np
 from math import pi, cos, sin, sqrt
 
 # Discretisation frequency
@@ -15,22 +15,11 @@ N  = 256
 frequencies = [697.0, 770.0, 852.0, 941.0, 1209.0, 1336.0, 1477.0, 1633.0]
 
 # Sample indexes
-ix = map(lambda f: int(f * N / fd), frequencies)
+ix = map(lambda f: int(f * N / fd) + 1, frequencies)
 
 phases = map(lambda k: 2.0 * pi * k / N, ix)
 cosines = map(lambda phase: cos(phase), phases)
 sines = map(lambda phase: sin(phase), phases)
-
-for c in cosines:
-    print "%d," % int(c * (1 << 15))
-print "--"
-for s in sines:
-    print "%d," % int(s * (1 << 15))
-
-
-print ix
-print cosines
-print sines
 
 def goertzel(s, ix):
     N = len(s)
@@ -68,11 +57,25 @@ def load205Samples(filename):
     return data
 
 
-data = load205Samples('digit-3-205.txt')
+# data = load205Samples('digit-3-205.txt')
 data = load256Samples('digit-3.txt')
+# data = load205Samples('noise.txt')
 
-# s = goertzel(data, ix)
-# print s
-# pp.stem(s)
-# pp.show()
+# T = np.linspace(0, N, N, endpoint = False, dtype = 'float64') / fd
+
+# data = []
+# for t in T:    
+#     data.append(round((sin(2.0 * pi * frequencies[0] * t) + sin(2.0 * pi * frequencies[6] * t)) * 20 + 512))
+
+# print data    
+    
+
+
+s = goertzel(data, ix)
+print s
+pp.stem(s)
+pp.show()
+
+
+    
 
