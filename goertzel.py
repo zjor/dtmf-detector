@@ -21,6 +21,9 @@ phases = map(lambda k: 2.0 * pi * k / N, ix)
 cosines = map(lambda phase: cos(phase), phases)
 sines = map(lambda phase: sin(phase), phases)
 
+print cosines
+print sines
+
 def goertzel(s, ix):
     N = len(s)
     result = []
@@ -69,8 +72,6 @@ data = load256Samples('digit-3.txt')
 
 # print data    
     
-
-
 s = goertzel(data, ix)
 print s
 pp.stem(s)
