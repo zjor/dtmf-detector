@@ -5,11 +5,11 @@ from math import pi, cos, sin, sqrt
 
 # Discretisation frequency
 fd = 9615.0
-# fd = 8000.0
+fd = 8000.0
 
 # Number of samples
 N  = 256
-# N = 205
+N = 205
 
 # Frequencies
 frequencies = [697.0, 770.0, 852.0, 941.0, 1209.0, 1336.0, 1477.0, 1633.0]
@@ -60,17 +60,9 @@ def load205Samples(filename):
     return data
 
 
-# data = load205Samples('digit-3-205.txt')
-data = load256Samples('digit-3.txt')
+data = load205Samples('digit-3-205.txt')
+# data = load256Samples('digit-3.txt')
 # data = load205Samples('noise.txt')
-
-# T = np.linspace(0, N, N, endpoint = False, dtype = 'float64') / fd
-
-# data = []
-# for t in T:    
-#     data.append(round((sin(2.0 * pi * frequencies[0] * t) + sin(2.0 * pi * frequencies[6] * t)) * 20 + 512))
-
-# print data    
     
 s = goertzel(data, ix)
 print s
