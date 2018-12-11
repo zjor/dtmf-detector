@@ -80,7 +80,6 @@ void initADC() {
            _BV(ADATE) | // Auto trigger
            _BV(ADIE)  | // Interrupt enable
            _BV(ADPS2) | _BV(ADPS1) | _BV(ADPS0); // 128:1 / 13 = 9615 Hz
-//  ADCSRB = _BV(ADTS2) | _BV(ADTS0);              // Timer/Counter1 Compare Match B
   ADCSRB = 0; // Free-run mode
   DIDR0  = _BV(0); // Turn off digital input for ADC pin      
   TIMSK0 = 0;                // Timer0 off
@@ -91,18 +90,18 @@ void goertzel(uint8_t *samples, float *spectrum) {
   float re, im, amp;
     
   for (uint8_t k = 0; k < IX_LEN; k++) {
-    float cos = pgm_read_float(&(cos_t[k]));
-    float sin = pgm_read_float(&(sin_t[k]));
+    float c = pgm_read_float(&(cos_t[k]));
+    float s = pgm_read_float(&(sin_t[k]));
     
-    float a = 2. * cos;
+    float a = 2. * c;
     v_0 = v_1 = v_2 = 0;  
     for (uint16_t i = 0; i < N; i++) {
       v_0 = v_1;
       v_1 = v_2;
       v_2 = (float)(samples[i]) + a * v_1 - v_0;
     }
-    re = cos * v_2 - v_1;
-    im = sin * v_2;
+    re = c * v_2 - v_1;
+    im = s * v_2;
     amp = sqrt(re * re + im * im);
     spectrum[k] = amp;        
   } 
@@ -181,7 +180,6 @@ void setup() {
   detected_digit.digit = 0;
 }
 
-//uint16_t lastUpdatedMillis = 0;
 unsigned long z = 0;
 
 void loop() {
@@ -190,15 +188,9 @@ void loop() {
   detect_digit(spectrum);
 
   if (detected_digit.digit != 0) {
-//    lastUpdatedMillis = millis();
     drawSprite(font[detected_digit.index]);
     lmd.display();
-  } else {
-//    if (millis() - lastUpdatedMillis > 1000) {
-//      lmd.clear();
-//      lmd.display();
-//    }
-  }
+  }   
   
   if (z % 5 == 0) {    
     for (int i = 0; i < IX_LEN; i++) {
