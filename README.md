@@ -1,4 +1,16 @@
-# DTMF Detector
+# DTFM Detector
+
+## Overview
+
+The device capture microphone input and decodes digit encoded using DTFM
+
+## Schematic
+
+![schematic](https://raw.githubusercontent.com/zjor/dtmf-detector/master/schematic_bb.png)
+
+## Video
+
+[![video](https://img.youtube.com/vi/vfhiGLL-tyk/0.jpg)](https://www.youtube.com/watch?v=vfhiGLL-tyk)
 
 ## How to build
 
@@ -13,7 +25,9 @@
 
 ## References
 
-- http://onlinetonegenerator.com/dtmf.html
+- [DTFM tone generator](http://onlinetonegenerator.com/dtmf.html)
 - http://www.hex705.com/logging-serial-communication-to-a-text-file-arduino-and-osx/
-- http://ru.dsplib.org/content/goertzel/goertzel.html
+- [Goertzel algorithm description](http://ru.dsplib.org/content/goertzel/goertzel.html)
 - https://xantorohara.github.io/led-matrix-editor
+
+- [habr](https://habr.com/post/432498/)
