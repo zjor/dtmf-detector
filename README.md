@@ -2,11 +2,33 @@
 
 ## Overview
 
-The device capture microphone input and decodes digit encoded using DTFM
+The device captures input from the microphone and decodes digit encoded using DTFM.
 
 ## Schematic
 
 ![schematic](https://raw.githubusercontent.com/zjor/dtmf-detector/master/schematic_bb.png)
+
+## Connections
+
+### Display to Arduino
+
+|Display|Arduino|
+|-------|-------|
+|VCC    |5V     |
+|GND    |GND    |
+|DIN    |D11    |
+|CLK    |D13    |
+|CS     |D9     |
+
+### Mic to Arduino
+
+|Mic    |Arduino|
+|-------|-------|
+|VCC    |3.3V   |
+|GND    |GND    |
+|Out    |A0     |
+
+Note: Connect 3.3V to AREF
 
 ## Video
 
