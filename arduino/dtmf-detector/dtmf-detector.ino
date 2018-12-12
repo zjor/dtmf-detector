@@ -1,6 +1,16 @@
 /**
- * 8x8 LED matrix display with MAX7219 driver
- * +5V, GND, CLK (8 pin), CS (9 pin), DIN (10 pin)
+ * Connections:
+ * [ Mic to Arduino ]
+ *  - Out -> A0
+ *  - Vcc -> 3.3V
+ *  - Gnd -> Gnd
+ *  - Arduino: AREF -> 3.3V
+ * [ Display to Arduino ]
+ *  - Vcc -> 5V
+ *  - Gnd -> Gnd
+ *  - DIN -> D11
+ *  - CLK -> D13
+ *  - CS  -> D9
  */
 #include <binary.h>
 #include <avr/pgmspace.h>
