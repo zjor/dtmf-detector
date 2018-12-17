@@ -36,8 +36,7 @@ Note: Connect 3.3V to AREF
 
 ## How to build
 
-1. Run `processing/install-deps.sh` to install dependencies from `libs` to local maven repo (otherwise it's impossible to build executable jar)
-2. Run `mvn clean install`
+Run `gradlew fatJar` from processing folder
 
 ## Capturing serial output to file
 1. `script -a -t0 serial.txt`
